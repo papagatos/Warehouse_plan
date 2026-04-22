@@ -1,0 +1,14 @@
+# Секреты
+backend/.env
+backend/node_modules/
+frontend/node_modules/
+frontend/dist/
+logs/
+*.log
+
+# БД
+*.sql
+*.dump
+
+# PM2
+ecosystem.config.cjs

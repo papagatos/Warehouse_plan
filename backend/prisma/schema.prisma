@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Роли ───────────────────────────────────────────────────
+enum UserRole {
+  SUPER        // Суперпользователь
+  WAREHOUSE    // Кладовщик
+  LOADER       // Грузчик
+  RECEIVER
+  MANAGER
+  VIEWER       // Только просмотр
+}
+
+// ── Типы строк плана ───────────────────────────────────────
+enum RowType {
+  ARRIVAL      // П — Поступление
+  CONTAINER    // К1, К2 — Отгрузка контейнер
+  DELIVERY     // Д — Отгрузка доставка
+  PICKUP       // С — Отгрузка самовывоз
+  RETURN       // В — Возврат
+}
+
+// ── Статусы ────────────────────────────────────────────────
+enum RowStatus {
+  // Общий начальный статус
+  WAITING      // Ожидание
+
+  // Поступление
+  ACCEPTED     // Принят
+  POSTPONED    // Перенос
+
+  // Отгрузка
+  IN_PROGRESS  // В работе
+  ASSEMBLED    // Собран
+  SHIPPED      // Отгружен
+}
+
+// ── Типы фото ──────────────────────────────────────────────
+enum PhotoType {
+  ARRIVAL      // Фото приёмки
+  ASSEMBLY     // Фото сборки
+  SHIPMENT     // Фото отгрузки
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  passwordHash  String    @map("password_hash")
+  role          UserRole  @default(VIEWER)
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Инвайт-система
+  lastLoginAt   DateTime? @map("last_login_at")
+  phone         String?   // Телефон для QR на этикетке
+  inviteToken   String?   @unique @map("invite_token")
+  inviteUsedAt  DateTime? @map("invite_used_at")
+  invitedById   String?   @map("invited_by_id")
+  invitedBy     User?     @relation("Invites", fields: [invitedById], references: [id])
+  invitedUsers  User[]    @relation("Invites")
+
+  // Связи
+  importedPlans    Plan[]          @relation("Importer")
+  statusChanges    StatusHistory[]
+  uploadedPhotos   Photo[]
+
+  @@map("users")
+}
+
+model Plan {
+  id               String    @id @default(uuid())
+  planDate         DateTime  @map("plan_date") @db.Date
+  sourceFileUrl    String?   @map("source_file_url")
+  originalFilename String?   @map("original_filename")
+  importedById     String?   @map("imported_by_id")
+  importedBy       User?     @relation("Importer", fields: [importedById], references: [id])
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  rows             PlanRow[]
+
+  @@unique([planDate])
+  @@map("plans")
+}
+
+model PlanRow {
+  id              String    @id @default(uuid())
+  planId          String    @map("plan_id")
+  plan            Plan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  rowType         RowType   @map("row_type")
+  // Исходный код из Excel (П, Д, С, К1, К2, В)
+  rawType         String    @map("raw_type")
+  counterparty    String?   // Контрагент (колонка B)
+  weight          Decimal?  @db.Decimal(10, 2) // Вес (колонка D)
+  manager         String?   // Менеджер (колонка E)
+  vehicleNumber   String?   @map("vehicle_number") // № Машины (колонка F)
+  notes           String?   // Дополнительно (колонка G)
+  phone           String?   // Телефон контрагента
+  pallets       String?   // формат: "3+4+1+1"
+  palletsExtra  String?   @map("pallets_extra") // добавка
+  postponedDate DateTime? @map("postponed_date") @db.Date
+  isPostponed   Boolean   @default(false) @map("is_postponed")
+  originalDate  DateTime? @map("original_date") @db.Date
+  sortOrder       Int       @map("sort_order")
+  status          RowStatus @default(WAITING)
+  createdById   String?   @map("created_by_id")
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  statusHistory   StatusHistory[]
+  photos          Photo[]
+
+  @@map("plan_rows")
+}
+
+model StatusHistory {
+  id          String    @id @default(uuid())
+  planRowId   String    @map("plan_row_id")
+  planRow     PlanRow   @relation(fields: [planRowId], references: [id], onDelete: Cascade)
+  changedById String?   @map("changed_by_id")
+  changedBy   User?     @relation(fields: [changedById], references: [id])
+  oldStatus   RowStatus @map("old_status")
+  newStatus   RowStatus @map("new_status")
+  comment     String?
+  changedAt   DateTime  @default(now()) @map("changed_at")
+
+  @@map("status_history")
+}
+
+model Photo {
+  id          String    @id @default(uuid())
+  planRowId   String    @map("plan_row_id")
+  planRow     PlanRow   @relation(fields: [planRowId], references: [id], onDelete: Cascade)
+  uploadedById String?  @map("uploaded_by_id")
+  uploadedBy  User?     @relation(fields: [uploadedById], references: [id])
+  fileUrl     String    @map("file_url")
+  fileKey     String    @map("file_key")
+  photoType   PhotoType @map("photo_type")
+  uploadedAt  DateTime  @default(now()) @map("uploaded_at")
+
+  @@map("photos")
+}
+
+// Инвайт-ссылки (хранятся отдельно для безопасности)
+model InviteLink {
+  id          String    @id @default(uuid())
+  token       String    @unique
+  role        UserRole
+  createdById String    @map("created_by_id")
+  usedAt      DateTime? @map("used_at")
+  usedById    String?   @map("used_by_id")
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("invite_links")
+}
+
+model Settings {
+  key   String @id
+  value String @default("")
+
+  @@map("settings")
+}
