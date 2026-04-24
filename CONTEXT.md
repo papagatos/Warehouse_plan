@@ -8,7 +8,10 @@
 ## Что работает
 - Все роли (SUPER, MANAGER, WAREHOUSE, LOADER, RECEIVER, VIEWER)
 - Создание записей менеджером (все типы: П, Д, С, К1, К2, В)
-- Автоперенос незавершённых записей в 00:01
+- Автоперенос незавершённых записей в 00:01 (двигает карточку, не копирует)
+- Ручной перенос записи на любую дату (неограниченное количество раз)
+- История переносов в БД (таблица postpone_history) — для будущей статистики
+- Статус "Отменён" (красный) — для SUPER и MANAGER
 - Фото в S3
 - Поддоны основные + добавка с суммой
 - Телефон контрагента
@@ -18,12 +21,12 @@
 - Фильтры по статусу и типу (localStorage)
 - Блокировка пользователей
 - Смена пароля через /admin
-- Инвайты на email (invite@whmanage.ru)
+- Инвайты на email (invite@whmanage.ru) — работает
+- Лог приглашений в /admin (сворачиваемый, показывает email кто использовал)
 - Итого поддонов за день в шапке
 
 ## В процессе
-- Отправка инвайтов на email — код написан, нужно проверить
-- invite@whmanage.ru зарегистрирован но пароль не добавлен в .env
+- IMAP email-worker не настроен (IMAP_HOST, IMAP_USER, IMAP_PASS не заполнены в .env)
 
 ## Команды управления
 ```bash
@@ -38,3 +41,8 @@ docker exec warehouse_db pg_dump -U warehouse warehouse_db > backup-$(date +%Y%m
 - Frontend: /root/warehouse-plan/frontend/src/
 - Логи: /root/warehouse-plan/logs/
 - .env: /root/warehouse-plan/backend/.env
+
+## БД
+- PostgreSQL в Docker (контейнер warehouse_db)
+- Prisma ORM
+- Таблицы: users, plans, plan_rows, status_history, postpone_history, photos, invite_links, settings
