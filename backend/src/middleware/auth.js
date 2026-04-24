@@ -46,21 +46,21 @@ export function requireRole(...roles) {
 export const PERMISSIONS = {
   // Кто может менять статус строки
   canChangeStatus: {
-    ARRIVAL: ['SUPER', 'RECEIVER'],            // Поступление
-    CONTAINER: ['SUPER', 'WAREHOUSE', 'LOADER'], // Контейнер
-    DELIVERY: ['SUPER', 'WAREHOUSE', 'LOADER'],  // Доставка
-    PICKUP: ['SUPER', 'WAREHOUSE', 'LOADER'],    // Самовывоз
-    RETURN: ['SUPER'],
+    ARRIVAL: ['SUPER', 'RECEIVER', 'MANAGER'],            // Поступление
+    CONTAINER: ['SUPER', 'WAREHOUSE', 'LOADER', 'MANAGER'], // Контейнер
+    DELIVERY: ['SUPER', 'WAREHOUSE', 'LOADER', 'MANAGER'],  // Доставка
+    PICKUP: ['SUPER', 'WAREHOUSE', 'LOADER', 'MANAGER'],    // Самовывоз
+    RETURN: ['SUPER', 'MANAGER'],
   },
 
   // Какие статусы доступны каждой роли
   allowedStatuses: {
-    SUPER:     ['WAITING', 'POSTPONED', 'ACCEPTED', 'IN_PROGRESS', 'ASSEMBLED', 'SHIPPED'],
+    SUPER:     ['WAITING', 'POSTPONED', 'ACCEPTED', 'IN_PROGRESS', 'ASSEMBLED', 'SHIPPED', 'CANCELLED'],
     RECEIVER:  ['WAITING', 'POSTPONED', 'ACCEPTED'],      // по приходу и возврату
     WAREHOUSE: ['IN_PROGRESS', 'ASSEMBLED'],
     LOADER:    ['SHIPPED'],
     VIEWER:    [],
-    MANAGER:   [],
+    MANAGER:   ['WAITING', 'POSTPONED', 'CANCELLED'],
   },
 
   // Кто может загружать фото

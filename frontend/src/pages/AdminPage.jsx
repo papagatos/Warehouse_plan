@@ -15,10 +15,46 @@ const ROLE_COLORS = {
   VIEWER:    'bg-gray-100 text-gray-600',
 }
 
+function InviteLog({ invites }) {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <div className="card divide-y divide-gray-100">
+      <button className="px-4 py-3 w-full flex items-center justify-between" onClick={() => setOpen(o => !o)}>
+        <h2 className="text-sm font-semibold text-gray-700">История приглашений ({invites.length})</h2>
+        <span className="text-gray-400 text-xs">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && invites.map(inv => (
+        <div key={inv.id} className="px-4 py-2.5 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium truncate">
+              {inv.usedBy?.email || inv.email || <span className="text-gray-400 italic">не использован</span>}
+            </p>
+            <p className="text-xs text-gray-400">
+              {new Date(inv.createdAt).toLocaleString('ru', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
+              {inv.createdBy?.name ? ` · ${inv.createdBy.name}` : ''}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-xs px-2 py-0.5 rounded-full ${
+              inv.usedAt ? 'bg-green-100 text-green-700' :
+              new Date(inv.expiresAt) < new Date() ? 'bg-gray-100 text-gray-400' :
+              'bg-blue-100 text-blue-700'
+            }`}>
+              {inv.usedAt ? '✓ Использован' :
+               new Date(inv.expiresAt) < new Date() ? 'Истёк' : ROLE_LABELS[inv.role]}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const { isSuper } = useRole()
   const navigate    = useNavigate()
   const [users, setUsers]   = useState([])
+  const [invites, setInvites] = useState([])
   const [loading, setLoading] = useState(true)
   const [newInvite, setNewInvite]   = useState(null)
   const [inviteRole, setInviteRole] = useState('WAREHOUSE')
@@ -30,6 +66,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!isSuper) { navigate('/'); return }
     adminApi.getUsers().then(setUsers).finally(() => setLoading(false))
+    authApi.getInvites().then(setInvites).catch(() => {})
   }, [isSuper])
 
   const handleResetPassword = async (userId, userName) => {
@@ -59,7 +96,7 @@ export default function AdminPage() {
     if (!inviteEmail.trim()) { alert('Введите email'); return }
     setSendingInvite(true); setInviteSent(null)
     try {
-      const r = await api.post('/auth/send-invite', { email: inviteEmail.trim(), role: selectedRole })
+      const r = await api.post('/auth/send-invite', { email: inviteEmail.trim(), role: inviteRole })
       setInviteSent(r.data.message)
       setInviteEmail('')
     } catch (e) {
@@ -120,7 +157,7 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* Отправка инвайта на email */}
+        {/* Email инвайт */}
         <div className="flex gap-2 mt-2">
           <input
             type="email"
@@ -197,6 +234,11 @@ export default function AdminPage() {
           </div>
         ))}
       </div>
-    </div>
+
+    {/* Лог приглашений */}
+    {invites.length > 0 && (
+      <InviteLog invites={invites} />
+    )}
+  </div>
   )
 }

@@ -166,6 +166,10 @@ router.get('/invites', requireAuth, requireRole('SUPER'), async (req, res) => {
     where: { createdById: req.user.id },
     orderBy: { createdAt: 'desc' },
     take: 50,
+    include: {
+      createdBy: { select: { name: true } },
+      usedBy:    { select: { email: true, name: true } },
+    }
   })
   res.json(invites)
 })

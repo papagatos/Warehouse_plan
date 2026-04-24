@@ -7,7 +7,7 @@ import { requireAuth, requireRole } from '../middleware/auth.js'
 const router = Router()
 
 const RoleSchema = z.object({
-  role: z.enum(['SUPER', 'WAREHOUSE', 'LOADER', 'RECEIVER', 'VIEWER'])
+  role: z.enum(['SUPER', 'WAREHOUSE', 'LOADER', 'RECEIVER', 'VIEWER', 'MANAGER'])
 })
 
 // ── GET /admin/users ──────────────────────────────────────────

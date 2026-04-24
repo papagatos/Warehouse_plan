@@ -13,6 +13,7 @@ const STATUS_BG = {
   ASSEMBLED:   'border-l-4 border-l-[#f5c842] bg-[#FFEFC1]/30',
   ACCEPTED:    'border-l-4 border-l-[#5aab6b] bg-[#D0E7C9]/30',
   SHIPPED:     'border-l-4 border-l-[#5aab6b] bg-[#D0E7C9]/30',
+  CANCELLED:   'border-l-4 border-l-red-400 bg-red-50/50',
 }
 
 
@@ -574,12 +575,6 @@ export default function PlanRow({ row, onUpdate, onDelete }) {
             </div>
           )}
 
-          {/* Показываем дату переноса если установлена */}
-          {row.postponedDate && row.status === 'POSTPONED' && (
-            <p className="text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-1.5">
-              Перенесено на: {new Date(row.postponedDate).toLocaleDateString('ru', {day:'2-digit', month:'2-digit', year:'numeric'})}
-            </p>
-          )}
 
           {error && <p className="text-xs text-red-500">{error}</p>}
         </div>

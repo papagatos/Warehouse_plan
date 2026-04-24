@@ -1,4 +1,5 @@
 import prisma from '../prisma/client.js'
+import { randomUUID } from 'crypto'
 
 const INCOMPLETE_STATUSES = ['WAITING', 'IN_PROGRESS', 'ASSEMBLED', 'POSTPONED']
 
@@ -36,15 +37,28 @@ export async function runAutoPostpone() {
   let sortOrder = (lastRow?.sortOrder ?? -1) + 1
 
   for (const row of incomplete) {
-    await prisma.planRow.update({
-      where: { id: row.id },
-      data: {
-        planId:      todayPlan.id,
-        sortOrder:   sortOrder++,
-        isPostponed: true,
-        originalDate: row.originalDate ?? yesterday,
-      }
-    })
+    await prisma.$transaction([
+      prisma.planRow.update({
+        where: { id: row.id },
+        data: {
+          planId:      todayPlan.id,
+          sortOrder:   sortOrder++,
+          isPostponed: true,
+          originalDate: row.originalDate ?? yesterday,
+          status: 'POSTPONED',
+          postponedDate: today,
+        }
+      }),
+      prisma.postponeHistory.create({
+        data: {
+          id:         randomUUID(),
+          planRowId:  row.id,
+          fromDate:   yesterday,
+          toDate:     today,
+          byUserId:   null,
+        }
+      }),
+    ])
   }
 
   console.log(`[auto-postpone] Done: ${incomplete.length}`)

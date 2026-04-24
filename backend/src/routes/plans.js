@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import { Router } from 'express'
 import multer from 'multer'
 import { z } from 'zod'
@@ -9,7 +10,7 @@ const router = Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
 
 const StatusSchema = z.object({
-  status:        z.enum(['WAITING', 'POSTPONED', 'ACCEPTED', 'IN_PROGRESS', 'ASSEMBLED', 'SHIPPED']),
+  status:        z.enum(['WAITING', 'POSTPONED', 'ACCEPTED', 'IN_PROGRESS', 'ASSEMBLED', 'SHIPPED', 'CANCELLED']),
   comment:       z.string().optional(),
   pallets:       z.string().nullable().optional(),
   postponedDate: z.string().nullable().optional(),
@@ -96,8 +97,48 @@ router.patch('/rows/:id/status', requireAuth, async (req, res) => {
   const updated = await prisma.$transaction(async (tx) => {
     const updateData = { status }
     if (data.pallets !== undefined) updateData.pallets = data.pallets
-    if (data.postponedDate) updateData.postponedDate = new Date(data.postponedDate)
-    if (status !== 'POSTPONED') updateData.postponedDate = null
+
+    if (status === 'POSTPONED' && data.postponedDate) {
+      const toDate = new Date(data.postponedDate)
+      toDate.setHours(0, 0, 0, 0)
+
+      // Найти или создать план на целевую дату
+      let targetPlan = await tx.plan.findUnique({ where: { planDate: toDate } })
+      if (!targetPlan) {
+        targetPlan = await tx.plan.create({ data: { planDate: toDate } })
+      }
+
+      // Найти текущую дату плана
+      const currentPlan = await tx.plan.findUnique({ where: { id: planRow.planId } })
+      const fromDate = currentPlan?.planDate ?? new Date()
+
+      // Найти последний sortOrder на целевом плане
+      const lastRow = await tx.planRow.findFirst({
+        where: { planId: targetPlan.id },
+        orderBy: { sortOrder: 'desc' }
+      })
+
+      // Двигаем карточку на новый план
+      updateData.planId = targetPlan.id
+      updateData.sortOrder = (lastRow?.sortOrder ?? -1) + 1
+      updateData.isPostponed = true
+      updateData.originalDate = planRow.originalDate ?? fromDate
+      updateData.postponedDate = toDate
+
+      // Пишем в историю переносов
+      await tx.postponeHistory.create({
+        data: {
+          id:        randomUUID(),
+          planRowId: planRow.id,
+          fromDate,
+          toDate,
+          byUserId:  req.user.id,
+        }
+      })
+    } else {
+      updateData.postponedDate = null
+    }
+
     const row = await tx.planRow.update({
       where: { id: req.params.id },
       data: updateData
@@ -105,11 +146,11 @@ router.patch('/rows/:id/status', requireAuth, async (req, res) => {
 
     await tx.statusHistory.create({
       data: {
-        planRowId: row.id,
+        planRowId:   row.id,
         changedById: req.user.id,
-        oldStatus: planRow.status,
-        newStatus: status,
-        comment: comment || null,
+        oldStatus:   planRow.status,
+        newStatus:   status,
+        comment:     comment || null,
       }
     })
 

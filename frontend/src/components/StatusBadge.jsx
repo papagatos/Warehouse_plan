@@ -6,6 +6,7 @@ export const STATUS_CONFIG = {
   IN_PROGRESS: { label: 'В работе',  color: 'bg-blue-100 text-blue-700',      dot: 'bg-blue-500' },
   ASSEMBLED:   { label: 'Собран',    color: 'bg-purple-100 text-purple-700',  dot: 'bg-purple-500' },
   SHIPPED:     { label: 'Отгружен',  color: 'bg-emerald-100 text-emerald-700',dot: 'bg-emerald-500' },
+  CANCELLED:   { label: 'Отменён',   color: 'bg-red-100 text-red-700',        dot: 'bg-red-500' },
 }
 
 export const ROW_TYPE_CONFIG = {
@@ -28,11 +29,11 @@ export const ROLE_LABELS = {
 // Какие статусы может выставлять каждая роль, для каждого типа строки
 export const ALLOWED_STATUS_TRANSITIONS = {
   SUPER: {
-    ARRIVAL:   ['WAITING', 'POSTPONED', 'ACCEPTED'],
-    CONTAINER: ['WAITING', 'IN_PROGRESS', 'ASSEMBLED', 'POSTPONED', 'SHIPPED'],
-    DELIVERY:  ['WAITING', 'IN_PROGRESS', 'ASSEMBLED', 'POSTPONED', 'SHIPPED'],
-    PICKUP:    ['WAITING', 'IN_PROGRESS', 'ASSEMBLED', 'POSTPONED', 'SHIPPED'],
-    RETURN:    ['WAITING', 'POSTPONED', 'ACCEPTED'],
+    ARRIVAL:   ['WAITING', 'POSTPONED', 'ACCEPTED', 'CANCELLED'],
+    CONTAINER: ['WAITING', 'IN_PROGRESS', 'ASSEMBLED', 'POSTPONED', 'SHIPPED', 'CANCELLED'],
+    DELIVERY:  ['WAITING', 'IN_PROGRESS', 'ASSEMBLED', 'POSTPONED', 'SHIPPED', 'CANCELLED'],
+    PICKUP:    ['WAITING', 'IN_PROGRESS', 'ASSEMBLED', 'POSTPONED', 'SHIPPED', 'CANCELLED'],
+    RETURN:    ['WAITING', 'POSTPONED', 'ACCEPTED', 'CANCELLED'],
   },
   RECEIVER: {
     ARRIVAL: ['WAITING', 'POSTPONED', 'ACCEPTED'],
@@ -47,6 +48,13 @@ export const ALLOWED_STATUS_TRANSITIONS = {
     CONTAINER: ['SHIPPED'],
     DELIVERY:  ['SHIPPED'],
     PICKUP:    ['SHIPPED'],
+  },
+  MANAGER: {
+    ARRIVAL:   ['WAITING', 'POSTPONED', 'CANCELLED'],
+    CONTAINER: ['WAITING', 'POSTPONED', 'CANCELLED'],
+    DELIVERY:  ['WAITING', 'POSTPONED', 'CANCELLED'],
+    PICKUP:    ['WAITING', 'POSTPONED', 'CANCELLED'],
+    RETURN:    ['WAITING', 'POSTPONED', 'CANCELLED'],
   },
   VIEWER: {},
 }

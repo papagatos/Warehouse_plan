@@ -18,7 +18,7 @@ export default function CreateRowForm({ planDate, onCreated }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [form, setForm] = useState({
-    rowType: 'DELIVERY', counterparty: '', weight: '',
+    rowType: 'DELIVERY', counterparty: '', weight: '', manager: '',
     phone: '', vehicleNumber: '', notes: '', date: planDate,
   })
 
