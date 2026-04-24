@@ -11,7 +11,6 @@ const CreateRowSchema = z.object({
   rawType:      z.string().optional(),
   counterparty: z.string().min(1, 'Контрагент обязателен'),
   weight:       z.number().positive().optional().nullable(),
-  manager:      z.string().optional().nullable(),
   vehicleNumber:z.string().optional().nullable(),
   phone:        z.string().optional().nullable(),
   palletsExtra: z.string().optional().nullable(),

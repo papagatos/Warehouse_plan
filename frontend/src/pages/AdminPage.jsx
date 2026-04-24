@@ -23,11 +23,26 @@ export default function AdminPage() {
   const [newInvite, setNewInvite]   = useState(null)
   const [inviteRole, setInviteRole] = useState('WAREHOUSE')
   const [copied, setCopied] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [sendingInvite, setSendingInvite] = useState(false)
+  const [inviteSent, setInviteSent] = useState(null)
 
   useEffect(() => {
     if (!isSuper) { navigate('/'); return }
     adminApi.getUsers().then(setUsers).finally(() => setLoading(false))
   }, [isSuper])
+
+  const handleResetPassword = async (userId, userName) => {
+    const pwd = prompt(`Новый пароль для ${userName} (минимум 6 символов):`)
+    if (!pwd) return
+    if (pwd.length < 6) { alert('Минимум 6 символов'); return }
+    try {
+      await api.post(`/admin/users/${userId}/reset-password`, { password: pwd })
+      alert('Пароль изменён')
+    } catch (e) {
+      alert(e.response?.data?.error || 'Ошибка')
+    }
+  }
 
   const handleDeactivate = async (userId, isActive) => {
     const action = isActive ? 'деактивировать' : 'активировать'
@@ -38,6 +53,18 @@ export default function AdminPage() {
     } catch (e) {
       alert(e.response?.data?.error || 'Ошибка')
     }
+  }
+
+  const handleSendInvite = async () => {
+    if (!inviteEmail.trim()) { alert('Введите email'); return }
+    setSendingInvite(true); setInviteSent(null)
+    try {
+      const r = await api.post('/auth/send-invite', { email: inviteEmail.trim(), role: selectedRole })
+      setInviteSent(r.data.message)
+      setInviteEmail('')
+    } catch (e) {
+      alert(e.response?.data?.error || 'Ошибка отправки')
+    } finally { setSendingInvite(false) }
   }
 
   const handleRoleChange = async (userId, role) => {
@@ -93,6 +120,23 @@ export default function AdminPage() {
           </button>
         </div>
 
+        {/* Отправка инвайта на email */}
+        <div className="flex gap-2 mt-2">
+          <input
+            type="email"
+            className="input flex-1"
+            placeholder="email сотрудника"
+            value={inviteEmail}
+            onChange={e => setInviteEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSendInvite()}
+          />
+          <button onClick={handleSendInvite} disabled={sendingInvite}
+            className="btn-primary whitespace-nowrap">
+            {sendingInvite ? '...' : '📨 Отправить'}
+          </button>
+        </div>
+        {inviteSent && <p className="text-xs text-green-600 mt-1">✓ {inviteSent}</p>}
+
         {newInvite && (
           <div className="mt-3 bg-green-50 rounded-lg p-3">
             <p className="text-xs text-green-700 mb-1.5 font-medium">
@@ -136,6 +180,13 @@ export default function AdminPage() {
                   <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                 ))}
               </select>
+              <button
+                onClick={() => handleResetPassword(user.id, user.name)}
+                className="text-xs px-2 py-1 rounded-lg text-blue-500 hover:bg-blue-50"
+                title="Сменить пароль"
+              >
+                🔑
+              </button>
               <button
                 onClick={() => handleDeactivate(user.id, user.isActive)}
                 className={`text-xs px-2 py-1 rounded-lg ${user.isActive ? 'text-red-500 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}

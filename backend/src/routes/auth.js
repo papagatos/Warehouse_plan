@@ -171,3 +171,127 @@ router.get('/invites', requireAuth, requireRole('SUPER'), async (req, res) => {
 })
 
 export default router
+
+// ── POST /auth/forgot-password — сброс пароля суперпользователя ──
+router.post('/forgot-password', async (req, res) => {
+  const { email } = z.object({ email: z.string().email() }).parse(req.body)
+
+  const user = await prisma.user.findUnique({ where: { email } })
+  // Не раскрываем существует ли пользователь
+  if (!user || user.role !== 'SUPER') {
+    return res.json({ message: 'Если email существует — письмо отправлено' })
+  }
+
+  const token = crypto.randomUUID()
+  const expires = new Date(Date.now() + 1000 * 60 * 60) // 1 час
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { inviteToken: token }
+  })
+
+  const { sendFaxPDF } = await import('../services/mailer.js')
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`
+
+  await import('nodemailer').then(async (nm) => {
+    const t = nm.default.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT) || 465,
+      secure: true,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    })
+    await t.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: 'Сброс пароля — whmanage.ru',
+      html: `<p>Для сброса пароля перейдите по ссылке:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Ссылка действительна 1 час.</p>`
+    })
+  })
+
+  res.json({ message: 'Если email существует — письмо отправлено' })
+})
+
+// ── POST /auth/reset-password — установить новый пароль ──────
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = z.object({
+    token:    z.string(),
+    password: z.string().min(6)
+  }).parse(req.body)
+
+  const user = await prisma.user.findFirst({ where: { inviteToken: token } })
+  if (!user) return res.status(400).json({ error: 'Неверная или устаревшая ссылка' })
+
+  const bcrypt = await import('bcryptjs')
+  const hash = await bcrypt.default.hash(password, 10)
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: hash, inviteToken: null }
+  })
+
+  res.json({ message: 'Пароль изменён' })
+})
+
+// ── POST /auth/send-invite — отправить инвайт на email ───────
+router.post('/send-invite', requireAuth, requireRole('SUPER'), async (req, res) => {
+  const { email, role } = z.object({
+    email: z.string().email(),
+    role:  z.enum(['SUPER', 'WAREHOUSE', 'LOADER', 'RECEIVER', 'MANAGER', 'VIEWER'])
+  }).parse(req.body)
+
+  // Создаём инвайт
+  const token = crypto.randomUUID()
+  await prisma.inviteLink.create({
+    data: {
+      token,
+      role,
+      createdById: req.user.id,
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 дней
+    }
+  })
+
+  const inviteUrl = `${process.env.FRONTEND_URL}/register?token=${token}`
+
+  const ROLE_NAMES = {
+    SUPER: 'Суперпользователь',
+    MANAGER: 'Менеджер',
+    WAREHOUSE: 'Кладовщик',
+    LOADER: 'Грузчик',
+    RECEIVER: 'Приёмщик',
+    VIEWER: 'Просмотр',
+  }
+
+  const nodemailer = await import('nodemailer')
+  const t = nodemailer.default.createTransport({
+    host: process.env.INVITE_SMTP_HOST || process.env.SMTP_HOST,
+    port: parseInt(process.env.INVITE_SMTP_PORT || process.env.SMTP_PORT) || 465,
+    secure: true,
+    auth: {
+      user: process.env.INVITE_SMTP_USER || process.env.SMTP_USER,
+      pass: process.env.INVITE_SMTP_PASS || process.env.SMTP_PASS
+    }
+  })
+
+  await t.sendMail({
+    from: process.env.INVITE_SMTP_FROM || process.env.SMTP_FROM,
+    to: email,
+    subject: 'Приглашение в систему управления складом',
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto">
+        <h2 style="color:#1d4ed8">Приглашение в whmanage.ru</h2>
+        <p>Вас приглашают зарегистрироваться в системе управления складом.</p>
+        <p><strong>Роль:</strong> ${ROLE_NAMES[role]}</p>
+        <p style="margin:24px 0">
+          <a href="${inviteUrl}"
+            style="background:#1d4ed8;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">
+            Зарегистрироваться
+          </a>
+        </p>
+        <p style="color:#666;font-size:12px">Ссылка действительна 7 дней. Если вы не ожидали это письмо — просто проигнорируйте его.</p>
+        <p style="color:#666;font-size:12px">Или скопируйте ссылку: ${inviteUrl}</p>
+      </div>
+    `
+  })
+
+  res.json({ message: `Приглашение отправлено на ${email}` })
+})

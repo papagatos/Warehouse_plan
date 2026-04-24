@@ -18,7 +18,7 @@ const STATUS_BG = {
 
 
 
-function PalletsExtraField({ row, onUpdate }) {
+function PalletsExtraField({ row, onUpdate, compact = false }) {
   const [val, setVal] = React.useState(row.palletsExtra || '')
   const [saved, setSaved] = React.useState(false)
 
@@ -40,6 +40,23 @@ function PalletsExtraField({ row, onUpdate }) {
 
   const sum = calcSum(val)
   const changed = val !== (row.palletsExtra || '')
+
+  if (compact) return (
+    <div>
+      <p className="text-xs text-gray-500 mb-1">🔲 Добавка</p>
+      <div className="flex items-center gap-1.5">
+        <input
+          className="input font-mono text-sm"
+          placeholder="2+1"
+          value={val}
+          onChange={e => { setVal(e.target.value); setSaved(false) }}
+          onBlur={async () => { if (changed) await handleSave() }}
+          maxLength={30}
+        />
+        {sum ? <span className="text-xs font-bold text-gray-700 whitespace-nowrap shrink-0">{sum}</span> : null}
+      </div>
+    </div>
+  )
 
   return (
     <div>
@@ -177,6 +194,47 @@ function LabelButton({ row }) {
             </button>
           </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+
+function ParticipantsBlock({ rowId }) {
+  const [data, setData] = React.useState(null)
+
+  React.useEffect(() => {
+    plansApi.getHistory(rowId).then(history => {
+      // Кто перевёл в IN_PROGRESS — кладовщик
+      const warehouse = history.find(h => h.newStatus === 'IN_PROGRESS')
+      // Кто перевёл в SHIPPED — грузчик
+      const loader = history.find(h => h.newStatus === 'SHIPPED')
+      // Кто перевёл в ACCEPTED — приёмщик
+      const receiver = history.find(h => h.newStatus === 'ACCEPTED')
+      setData({ warehouse, loader, receiver })
+    }).catch(() => {})
+  }, [rowId])
+
+  if (!data) return null
+  if (!data.warehouse && !data.loader && !data.receiver) return null
+
+  return (
+    <div className="bg-gray-50 rounded-lg px-3 py-2 space-y-1">
+      <p className="text-xs font-medium text-gray-500">Участники</p>
+      {data.warehouse && (
+        <p className="text-xs text-gray-600">
+          🏭 Кладовщик: <span className="font-medium">{data.warehouse.changedBy?.name}</span>
+        </p>
+      )}
+      {data.loader && (
+        <p className="text-xs text-gray-600">
+          🚛 Грузчик: <span className="font-medium">{data.loader.changedBy?.name}</span>
+        </p>
+      )}
+      {data.receiver && (
+        <p className="text-xs text-gray-600">
+          📦 Приёмщик: <span className="font-medium">{data.receiver.changedBy?.name}</span>
+        </p>
       )}
     </div>
   )
@@ -353,7 +411,7 @@ export default function PlanRow({ row, onUpdate, onDelete }) {
         <RowTypeBadge type={row.rowType} rawType={row.rawType} />
 
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-base truncate">
+          <div className="font-semibold text-base leading-tight">
             {row.counterparty || <span className="text-gray-400 italic">Контрагент не указан</span>}
           </div>
           <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-xs text-gray-500">
@@ -382,6 +440,11 @@ export default function PlanRow({ row, onUpdate, onDelete }) {
 
       {expanded && (
         <div className="border-t border-gray-100 p-4 space-y-4">
+          {/* Участники — для супера */}
+          {isSuper && (
+            <ParticipantsBlock rowId={row.id} />
+          )}
+
           {row.isPostponed && row.originalDate && (
             <p className="text-xs text-blue-500 bg-blue-50 rounded-lg px-3 py-1.5">
               ↷ Перенесено с {new Date(row.originalDate).toLocaleDateString('ru', {day:'2-digit', month:'long'})}
@@ -402,38 +465,40 @@ export default function PlanRow({ row, onUpdate, onDelete }) {
           />
 
           {/* Поддоны добавка */}
-          {/* Поддоны — только для кладовщика и выше */}
+          {/* Поддоны + Добавка — в одну строку */}
           {(role === 'WAREHOUSE' || isSuper) && row.rowType !== 'ARRIVAL' && row.rowType !== 'RETURN' && (
-            <div>
-              <p className="text-xs font-medium text-gray-500 mb-1.5">Поддоны</p>
-              <div className="flex items-center gap-2">
-                <input
-                  className="input font-mono"
-                  style={{width:'60%'}}
-                  placeholder="напр. 3+4+1+1"
-                  value={pallets}
-                  onChange={e => { setPallets(e.target.value); setPalletsChanged(true) }}
-                  maxLength={50}
-                />
-                {pallets && (
-                  <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-                    = {calcPallets(pallets) ?? '?'} шт
-                  </span>
-                )}
-                {palletsChanged && (
-                  <button onClick={handlePalletsSave} className="btn-primary text-xs px-3 py-1.5 whitespace-nowrap">
-                    Сохранить
-                  </button>
-                )}
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-2">
+                {/* Основные */}
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Поддоны</p>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      className="input font-mono text-sm"
+                      placeholder="3+4+1"
+                      value={pallets}
+                      onChange={e => { setPallets(e.target.value); setPalletsChanged(true) }}
+                      maxLength={30}
+                    />
+                    {pallets && <span className="text-xs font-bold text-gray-700 whitespace-nowrap shrink-0">{calcPallets(pallets) ?? '?'}</span>}
+                  </div>
+                </div>
+                {/* Добавка */}
+                <PalletsExtraField key={row.palletsExtra || 'empty'} row={row} onUpdate={onUpdate} compact />
               </div>
+              {palletsChanged && (
+                <button onClick={handlePalletsSave} className="btn-primary text-xs px-3 py-1.5 w-full justify-center">
+                  Сохранить поддоны
+                </button>
+              )}
               {row.pallets && !palletsChanged && (
-                <p className="text-xs text-gray-400 mt-1">Сохранено: {row.pallets} = {calcPallets(row.pallets)} шт</p>
+                <p className="text-xs text-gray-400">
+                  Сохранено: осн {calcPallets(row.pallets) ?? 0}
+                  {row.palletsExtra ? ` + доб ${calcPallets(row.palletsExtra) ?? 0}` : ''}
+                  {' '}= {(calcPallets(row.pallets) ?? 0) + (calcPallets(row.palletsExtra) ?? 0)} шт
+                </p>
               )}
             </div>
-          )}
-
-          {(role === 'WAREHOUSE' || isSuper) && row.rowType !== 'ARRIVAL' && row.rowType !== 'RETURN' && (
-            <PalletsExtraField key={row.palletsExtra || 'empty'} row={row} onUpdate={onUpdate} />
           )}
 
           {canChangeStatus && (

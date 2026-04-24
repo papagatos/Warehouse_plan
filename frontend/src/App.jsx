@@ -8,7 +8,8 @@ import RegisterPage from './pages/RegisterPage.jsx'
 import PlanPage     from './pages/PlanPage.jsx'
 import AdminPage    from './pages/AdminPage.jsx'
 import ActivityPage  from './pages/ActivityPage.jsx'
-import SettingsPage  from './pages/SettingsPage.jsx'
+import SettingsPage       from './pages/SettingsPage.jsx'
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
 
 const TODAY = format(new Date(), 'yyyy-MM-dd')
 
@@ -114,6 +115,8 @@ export default function App() {
         <Routes>
           <Route path="/login"    element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ForgotPasswordPage />} />
 
           <Route path="/" element={
             <RequireAuth>

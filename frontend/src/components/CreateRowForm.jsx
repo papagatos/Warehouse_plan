@@ -19,7 +19,7 @@ export default function CreateRowForm({ planDate, onCreated }) {
   const [error, setError] = useState(null)
   const [form, setForm] = useState({
     rowType: 'DELIVERY', counterparty: '', weight: '',
-    manager: '', phone: '', vehicleNumber: '', notes: '', date: planDate,
+    phone: '', vehicleNumber: '', notes: '', date: planDate,
   })
 
   if (role !== 'SUPER' && role !== 'MANAGER') return null
@@ -97,9 +97,9 @@ export default function CreateRowForm({ planDate, onCreated }) {
                     value={form.weight} onChange={e => set('weight', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Менеджер</label>
-                  <input className="input" placeholder="Имя"
-                    value={form.manager} onChange={e => set('manager', e.target.value)} />
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">№ Машины</label>
+                  <input className="input" placeholder="А000АА 000"
+                    value={form.vehicleNumber} onChange={e => set('vehicleNumber', e.target.value)} />
                 </div>
               </div>
               <div>
@@ -114,11 +114,6 @@ export default function CreateRowForm({ planDate, onCreated }) {
                     if (v.length > 0 && v !== '+' && !v.startsWith('+')) v = '+7' + v
                     set('phone', v)
                   }} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">№ Машины</label>
-                <input className="input" placeholder="А000АА 000"
-                  value={form.vehicleNumber} onChange={e => set('vehicleNumber', e.target.value)} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Комментарий</label>
