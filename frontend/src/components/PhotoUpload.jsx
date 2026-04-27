@@ -37,17 +37,40 @@ export default function PhotoUpload({ row, onUpdate }) {
   const canUpload = (photoType) =>
     PHOTO_PERMISSIONS[photoType]?.includes(role)
 
+  const compressImage = (file) => new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const maxSize = 1200
+        let w = img.width, h = img.height
+        if (w > maxSize || h > maxSize) {
+          if (w > h) { h = Math.round(h * maxSize / w); w = maxSize }
+          else { w = Math.round(w * maxSize / h); h = maxSize }
+        }
+        canvas.width = w; canvas.height = h
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+        canvas.toBlob(blob => resolve(new File([blob], file.name, { type: 'image/jpeg' })), 'image/jpeg', 0.82)
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
+
   const handleUpload = async (e, photoType) => {
     const files = Array.from(e.target.files)
     if (!files.length) return
     setUploading(true)
     setError(null)
     try {
-      await photosApi.upload(row.id, files, photoType)
+      const compressed = await Promise.all(files.map(compressImage))
+      await photosApi.upload(row.id, compressed, photoType)
       // Перезагружаем строку (родитель обновит данные)
       onUpdate({ ...row, _needsRefresh: true })
     } catch (e) {
-      setError(e.response?.data?.error || 'Ошибка загрузки фото')
+      console.error('[photo upload error]', e.response?.status, e.response?.data)
+      setError(e.response?.data?.error || e.message || 'Ошибка загрузки фото')
     } finally {
       setUploading(false)
       e.target.value = ''

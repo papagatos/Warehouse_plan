@@ -306,13 +306,13 @@ router.get('/:rowId', async (req, res) => {
     const { randomUUID } = await import('crypto')
     await prisma.printLog.create({
       data: {
-        id: randomUUID(),
-        planRowId: req.params.rowId,
-        userId: currentUser?.userId || null,
+        id:          randomUUID(),
+        planRow:     { connect: { id: req.params.rowId } },
+        userId:      currentUser?.userId || null,
         productName: name,
         barcode,
-        copies: count,
-        method: 'print',
+        copies:      count,
+        method:      'print',
       }
     })
   } catch {}
@@ -382,13 +382,13 @@ ${Array.from({length: count}, (_, i) =>
     const { randomUUID } = await import('crypto')
     await prisma.printLog.create({
       data: {
-        id: randomUUID(),
-        planRowId: req.params.rowId,
-        userId: currentUser?.userId || null,
+        id:          randomUUID(),
+        planRow:     { connect: { id: req.params.rowId } },
+        userId:      currentUser?.userId || null,
         productName: name,
         barcode,
-        copies: count,
-        method: 'print',
+        copies:      count,
+        method:      'print',
       }
     })
   } catch (e) { console.error('[print-log]', e.message) }

@@ -36,12 +36,14 @@ router.post('/:rowId', requireAuth, upload.array('photos', 10), async (req, res)
   const planRow = await prisma.planRow.findUnique({ where: { id: req.params.rowId } })
   if (!planRow) return res.status(404).json({ error: 'Строка не найдена' })
 
+  console.log(`[photos] Загрузка ${req.files?.length} файлов:`, req.files?.map(f => `${f.originalname} ${f.mimetype} ${Math.round(f.size/1024)}KB`))
   const s3Configured = process.env.S3_ENDPOINT && process.env.S3_ACCESS_KEY
 
   const saved = await Promise.all(req.files.map(async (file) => {
     let fileKey, fileUrl
 
     if (s3Configured) {
+      try { console.log(`[photos] Загружаем в S3: ${file.originalname}`) } catch {}
       const result = await uploadToS3(
         file.buffer,
         file.originalname,

@@ -119,13 +119,13 @@ router.post('/send-fax-arrival', requireAuth, requireRole('SUPER', 'WAREHOUSE'),
     const count = Math.min(parseInt(copies) || 1, 50)
     await prisma.printLog.create({
       data: {
-        id: randomUUID(),
-        planRowId: rowId,
-        userId: req.user.id,
+        id:          randomUUID(),
+        planRow:     { connect: { id: rowId } },
+        userId:      req.user.id,
         productName: name,
         barcode,
-        copies: count,
-        method: 'fax',
+        copies:      count,
+        method:      'fax',
       }
     })
   } catch {}
