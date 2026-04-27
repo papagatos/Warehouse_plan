@@ -301,19 +301,57 @@ router.get('/:rowId', async (req, res) => {
 </body>
 </html>`
 
+  // Логируем печать
+  try {
+    const { randomUUID } = await import('crypto')
+    await prisma.printLog.create({
+      data: {
+        id: randomUUID(),
+        planRowId: req.params.rowId,
+        userId: currentUser?.userId || null,
+        productName: name,
+        barcode,
+        copies: count,
+        method: 'print',
+      }
+    })
+  } catch {}
+
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   res.send(html)
+})
+
+// GET /api/labels/print-log/:rowId — лог печати для карточки
+router.get('/print-log/:rowId', requireAuth, async (req, res) => {
+  const logs = await prisma.printLog.findMany({
+    where: { planRowId: req.params.rowId },
+    orderBy: { createdAt: 'desc' },
+    include: { user: { select: { name: true } } }
+  })
+  res.json(logs)
 })
 
 export default router
 
 // GET /api/labels/arrival/:rowId — этикетка поступления
-router.get('/arrival/:rowId', requireAuth, async (req, res) => {
-  const { barcode, name, mfgDate } = req.query
+router.get('/arrival/:rowId', async (req, res) => {
+  // Авторизация через query token или Bearer header (как в основных этикетках)
+  const token = req.query.token || req.headers.authorization?.slice(7)
+  if (!token) return res.status(401).json({ error: 'Токен не предоставлен' })
+  let currentUser = null
+  try {
+    const jwt = await import('jsonwebtoken')
+    const payload = jwt.default.verify(token, process.env.JWT_SECRET)
+    currentUser = payload
+  } catch {
+    return res.status(401).json({ error: 'Недействительный токен' })
+  }
+  const { barcode, name, mfgDate, copies } = req.query
   if (!barcode || !name) return res.status(400).json({ error: 'Нужен barcode и name' })
 
   const today = new Date().toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: 'numeric' })
   const mfg   = mfgDate ? new Date(mfgDate).toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
+  const count = Math.min(parseInt(copies) || 1, 50)
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
@@ -326,18 +364,34 @@ router.get('/arrival/:rowId', requireAuth, async (req, res) => {
   .barcode-num { font-size: 36px; margin-bottom: 14px; letter-spacing: 2px; }
   .date { font-size: 36px; margin-bottom: 10px; }
   .receipt { font-size: 30px; color: #444; }
+  .page-break { page-break-after: always; }
+  .label:last-child + .page-break { display: none; }
 </style>
 <script>
   window.onload = () => { window.print(); }
 </script>
 </head><body>
-<div class="label">
-  <div class="name">${name}</div>
-  <div class="barcode-num">${barcode}</div>
-  <div class="date">${mfg}</div>
-  <div class="receipt">Дата поступления ${today}</div>
-</div>
+${Array.from({length: count}, (_, i) => 
+    '<div class="label"><div class="name">' + name + '</div><div class="barcode-num">' + barcode + '</div><div class="date">' + mfg + '</div><div class="receipt">Дата поступления ' + today + '</div></div>' + 
+    (i < count - 1 ? '<div class="page-break"></div>' : '')
+  ).join('')}
 </body></html>`
+
+  // Логируем печать поступления
+  try {
+    const { randomUUID } = await import('crypto')
+    await prisma.printLog.create({
+      data: {
+        id: randomUUID(),
+        planRowId: req.params.rowId,
+        userId: currentUser?.userId || null,
+        productName: name,
+        barcode,
+        copies: count,
+        method: 'print',
+      }
+    })
+  } catch (e) { console.error('[print-log]', e.message) }
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   res.send(html)

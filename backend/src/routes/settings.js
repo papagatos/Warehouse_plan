@@ -75,4 +75,62 @@ router.post('/send-fax', requireAuth, requireRole('SUPER', 'WAREHOUSE'), async (
   res.json({ message: `PDF отправлен на ${setting.value}` })
 })
 
+
+// POST /settings/send-fax-arrival — факс этикетки поступления
+router.post('/send-fax-arrival', requireAuth, requireRole('SUPER', 'WAREHOUSE'), async (req, res) => {
+  const { rowId, barcode, name, mfgDate, copies } = req.body
+
+  const setting = await prisma.settings.findUnique({ where: { key: 'fax_email' } })
+  if (!setting?.value) {
+    return res.status(400).json({ error: 'Email факса не настроен. Обратитесь к администратору.' })
+  }
+
+  const token = req.headers.authorization?.slice(7)
+  const params = new URLSearchParams({ barcode, name, mfgDate: mfgDate || '', copies: copies || 1, token })
+  const labelUrl = `http://localhost:${process.env.PORT || 3000}/labels/arrival/${rowId}?${params}`
+  const htmlRes  = await globalThis.fetch(labelUrl)
+  const html     = await htmlRes.text()
+
+  const puppeteer = await import('puppeteer')
+  const browser   = await puppeteer.default.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  })
+  const page = await browser.newPage()
+  await page.setContent(html, { waitUntil: 'networkidle0' })
+  const pdf = await page.pdf({
+    format: 'A4',
+    landscape: true,
+    printBackground: true,
+    margin: { top: '0', right: '0', bottom: '0', left: '0' }
+  })
+  await browser.close()
+
+  await sendFaxPDF(
+    setting.value,
+    `Этикетка поступления: ${name}`,
+    pdf,
+    `arrival-${barcode}.pdf`
+  )
+
+  // Логируем отправку на факс
+  try {
+    const { randomUUID } = await import('crypto')
+    const count = Math.min(parseInt(copies) || 1, 50)
+    await prisma.printLog.create({
+      data: {
+        id: randomUUID(),
+        planRowId: rowId,
+        userId: req.user.id,
+        productName: name,
+        barcode,
+        copies: count,
+        method: 'fax',
+      }
+    })
+  } catch {}
+
+  res.json({ ok: true })
+})
+
 export default router

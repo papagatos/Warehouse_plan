@@ -72,6 +72,7 @@ model User {
   statusChanges    StatusHistory[]
   postponeHistory  PostponeHistory[]
   uploadedPhotos   Photo[]
+  printLog         PrintLog[]
   usedInvites      InviteLink[]    @relation("UsedInvites")
   createdInvites   InviteLink[]    @relation("CreatedInvites")
 
@@ -122,6 +123,7 @@ model PlanRow {
 
   statusHistory   StatusHistory[]
   postponeHistory  PostponeHistory[]
+  printLog         PrintLog[]
   photos          Photo[]
 
   @@map("plan_rows")
@@ -201,3 +203,18 @@ model Product {
 }
 
 
+
+model PrintLog {
+  id          String   @id @default(uuid())
+  planRowId   String   @map("plan_row_id")
+  planRow     PlanRow  @relation(fields: [planRowId], references: [id], onDelete: Cascade)
+  userId      String?  @map("user_id")
+  user        User?    @relation(fields: [userId], references: [id])
+  productName String   @map("product_name")
+  barcode     String
+  copies      Int      @default(1)
+  method      String   @default("print")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("print_log")
+}

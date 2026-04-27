@@ -7,7 +7,22 @@ export default function ArrivalLabel({ row }) {
   const [results, setResults] = useState([])
   const [selected, setSelected] = useState(null)
   const [mfgDate, setMfgDate] = useState('')
+  const [copies, setCopies] = useState(1)
   const [searching, setSearching] = useState(false)
+  const [printLog, setPrintLog] = useState([])
+
+  // Загружаем лог при открытии
+  const loadLog = async () => {
+    try {
+      const res = await api.get(`/labels/print-log/${row.id}`)
+      setPrintLog(res.data)
+    } catch {}
+  }
+
+  React.useEffect(() => { loadLog() }, [])
+  const [faxSending, setFaxSending] = useState(false)
+  const [faxSent, setFaxSent] = useState(false)
+  const [faxError, setFaxError] = useState(null)
 
   if (row.rowType !== 'ARRIVAL') return null
 
@@ -31,6 +46,7 @@ export default function ArrivalLabel({ row }) {
       barcode: selected.barcode,
       name: selected.name,
       mfgDate: mfgDate || '',
+      copies: copies,
     })
     const res = await fetch(`/api/labels/arrival/${row.id}?${params}`, {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -39,6 +55,26 @@ export default function ArrivalLabel({ row }) {
     const win = window.open('', '_blank')
     win.document.write(html)
     win.document.close()
+    setTimeout(loadLog, 1000)
+  }
+
+  const handleFax = async () => {
+    if (!selected) return
+    setFaxSending(true); setFaxError(null); setFaxSent(false)
+    try {
+      await api.post('/settings/send-fax-arrival', {
+        rowId: row.id,
+        barcode: selected.barcode,
+        name: selected.name,
+        mfgDate: mfgDate || '',
+        copies,
+      })
+      setFaxSent(true)
+      setTimeout(() => setFaxSent(false), 3000)
+      loadLog()
+    } catch (e) {
+      setFaxError(e.response?.data?.error || 'Ошибка отправки')
+    } finally { setFaxSending(false) }
   }
 
   return (
@@ -99,15 +135,49 @@ export default function ArrivalLabel({ row }) {
               value={mfgDate} onChange={e => setMfgDate(e.target.value)} />
           </div>
 
-          <div className="flex gap-2">
+          {/* Количество копий */}
+          <div>
+            <p className="text-xs font-medium text-gray-600 mb-1">Количество этикеток</p>
+            <input type="number" min="1" max="50" className="input text-sm"
+              value={copies} onChange={e => setCopies(Math.max(1, parseInt(e.target.value) || 1))} />
+          </div>
+
+          {faxError && <p className="text-xs text-red-500">{faxError}</p>}
+          {faxSent  && <p className="text-xs text-green-600">✓ Отправлено на факс!</p>}
+          <div className="flex gap-2 flex-wrap">
             <button onClick={handlePrint} disabled={!selected}
               className="btn-primary text-xs px-3 py-1.5 disabled:opacity-50">
               🖨️ Печать
+            </button>
+            <button onClick={handleFax} disabled={!selected || faxSending}
+              className="btn-secondary text-xs px-3 py-1.5 disabled:opacity-50">
+              {faxSending ? '📤 Отправка...' : '📠 На факс'}
             </button>
             <button onClick={() => { setOpen(false); setSelected(null); setQuery(''); setMfgDate('') }}
               className="btn-secondary text-xs px-3 py-1.5">
               Отмена
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Лог печати */}
+      {printLog.length > 0 && (
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-xs font-medium text-gray-500 mb-1.5">История печати</p>
+          <div className="space-y-1">
+            {printLog.map((log, i) => (
+              <div key={i} className="text-xs text-gray-500 space-y-0.5">
+                <div className="flex gap-2">
+                  <span className="text-gray-300">
+                    {new Date(log.createdAt).toLocaleString('ru', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}
+                  </span>
+                  <span className="font-medium">{log.user?.name || '—'}</span>
+                  <span>{log.copies} шт · {log.method === 'fax' ? '📠 факс' : '🖨️ печать'}</span>
+                </div>
+                <div className="text-gray-400 truncate">{log.productName} · {log.barcode}</div>
+              </div>
+            ))}
           </div>
         </div>
       )}
