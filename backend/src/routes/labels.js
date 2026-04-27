@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { requireAuth } from '../middleware/auth.js'
 import prisma from '../prisma/client.js'
 
 const router = Router()
@@ -305,3 +306,39 @@ router.get('/:rowId', async (req, res) => {
 })
 
 export default router
+
+// GET /api/labels/arrival/:rowId — этикетка поступления
+router.get('/arrival/:rowId', requireAuth, async (req, res) => {
+  const { barcode, name, mfgDate } = req.query
+  if (!barcode || !name) return res.status(400).json({ error: 'Нужен barcode и name' })
+
+  const today = new Date().toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const mfg   = mfgDate ? new Date(mfgDate).toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  @page { size: A4 landscape; margin: 10mm; }
+  @media print { body { margin: 0; } }
+  body { font-family: Arial, sans-serif; line-height: 1.3; }
+  .label { padding: 8mm; }
+  .name { font-size: 52px; font-weight: bold; margin-bottom: 16px; }
+  .barcode-num { font-size: 36px; margin-bottom: 14px; letter-spacing: 2px; }
+  .date { font-size: 36px; margin-bottom: 10px; }
+  .receipt { font-size: 30px; color: #444; }
+</style>
+<script>
+  window.onload = () => { window.print(); }
+</script>
+</head><body>
+<div class="label">
+  <div class="name">${name}</div>
+  <div class="barcode-num">${barcode}</div>
+  <div class="date">${mfg}</div>
+  <div class="receipt">Дата поступления ${today}</div>
+</div>
+</body></html>`
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+  res.send(html)
+})

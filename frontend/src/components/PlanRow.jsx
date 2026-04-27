@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { ChevronDown, ChevronUp, Camera, Clock, Truck, Package, Trash2 } from 'lucide-react'
 import { StatusBadge, RowTypeBadge, STATUS_CONFIG, ALLOWED_STATUS_TRANSITIONS } from './StatusBadge.jsx'
 import PhotoUpload from './PhotoUpload.jsx'
+import ArrivalLabel from './ArrivalLabel.jsx'
 import { plansApi } from '../api/index.js'
 import { useRole, useAuth } from '../api/auth.jsx'
 import api from '../api/client.js'
@@ -529,6 +530,7 @@ export default function PlanRow({ row, onUpdate, onDelete }) {
           )}
 
           <PhotoUpload row={row} onUpdate={onUpdate} />
+          <ArrivalLabel row={row} />
           <HistoryButton rowId={row.id} />
 
           {/* Кнопка этикеток */}

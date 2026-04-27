@@ -190,3 +190,14 @@ model PostponeHistory {
 
   @@map("postpone_history")
 }
+
+model Product {
+  id        String   @id @default(uuid())
+  barcode   String   @unique
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("products")
+}
+
+
