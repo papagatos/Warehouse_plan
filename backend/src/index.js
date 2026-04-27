@@ -11,6 +11,7 @@ import rowRoutes from './routes/rows.js'
 import photoRoutes from './routes/photos.js'
 import labelRoutes from './routes/labels.js'
 import settingsRoutes from './routes/settings.js'
+import errorsRoutes  from './routes/errors.js'
 
 dotenv.config()
 
@@ -37,6 +38,7 @@ app.use('/rows', rowRoutes)
 app.use('/photos', photoRoutes)
 app.use('/labels', labelRoutes)
 app.use('/settings', settingsRoutes)
+app.use('/errors',   errorsRoutes)
 
 // ── Error handler ─────────────────────────────────────────────
 app.use((err, req, res, next) => {

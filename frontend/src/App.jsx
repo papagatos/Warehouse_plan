@@ -1,7 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
-import { CalendarDays, Shield, LogOut, ClipboardList, Settings } from 'lucide-react'
+import { CalendarDays, Shield, LogOut, ClipboardList, Settings, AlertTriangle } from 'lucide-react'
 import { AuthProvider, useAuth, useRole } from './api/auth.jsx'
 import LoginPage    from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
@@ -9,6 +9,7 @@ import PlanPage     from './pages/PlanPage.jsx'
 import AdminPage    from './pages/AdminPage.jsx'
 import ActivityPage  from './pages/ActivityPage.jsx'
 import SettingsPage       from './pages/SettingsPage.jsx'
+import ErrorsPage         from './pages/ErrorsPage.jsx'
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
 
 const TODAY = format(new Date(), 'yyyy-MM-dd')
@@ -78,6 +79,19 @@ function Navbar() {
           )}
           {isSuper && (
             <NavLink
+              to="/errors"
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-100'
+                }`
+              }
+            >
+              <AlertTriangle className="w-4 h-4" />
+              Ошибки
+            </NavLink>
+          )}
+          {isSuper && (
+            <NavLink
               to="/admin"
               className={({ isActive }) =>
                 `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -136,6 +150,9 @@ export default function App() {
           } />
           <Route path="/settings" element={
             <RequireAuth><SettingsPage /></RequireAuth>
+          } />
+          <Route path="/errors" element={
+            <RequireAuth><ErrorsPage /></RequireAuth>
           } />
 
           <Route path="*" element={<Navigate to="/" replace />} />
