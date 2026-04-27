@@ -10,20 +10,25 @@
 - Создание записей менеджером (все типы: П, Д, С, К1, К2, В)
 - Автоперенос незавершённых записей в 00:01 (двигает карточку, не копирует)
 - Ручной перенос записи на любую дату (неограниченное количество раз)
-- История переносов в БД (таблица postpone_history) — для будущей статистики
+- История переносов в БД (таблица postpone_history)
 - Статус "Отменён" (красный) — для SUPER и MANAGER
 - Фото в S3
 - Поддоны основные + добавка с суммой
 - Телефон контрагента
-- Этикетки PDF → факс (fax@whmanage.ru)
+- Этикетки отгрузки PDF → факс (fax@whmanage.ru)
+- Этикетки поступления — поиск товара по штрихкоду, печать A4 landscape
+- База товаров (1240 товаров) — поиск по последним цифрам штрихкода
+- Управление товарами в /settings (добавить, удалить, поиск)
 - PWA
 - Журнал действий (/activity)
 - Фильтры по статусу и типу (localStorage)
 - Блокировка пользователей
 - Смена пароля через /admin
-- Инвайты на email (invite@whmanage.ru) — работает
-- Лог приглашений в /admin (сворачиваемый, показывает email кто использовал)
+- Инвайты на email (invite@whmanage.ru)
+- Лог приглашений в /admin
 - Итого поддонов за день в шапке
+- Сборщик ошибок фронтенда → /errors (последние 20 + скачать лог)
+- Лог ошибок бэкенда → /errors вкладка Бэкенд
 
 ## В процессе
 - IMAP email-worker не настроен (IMAP_HOST, IMAP_USER, IMAP_PASS не заполнены в .env)
@@ -45,4 +50,4 @@ docker exec warehouse_db pg_dump -U warehouse warehouse_db > backup-$(date +%Y%m
 ## БД
 - PostgreSQL в Docker (контейнер warehouse_db)
 - Prisma ORM
-- Таблицы: users, plans, plan_rows, status_history, postpone_history, photos, invite_links, settings
+- Таблицы: users, plans, plan_rows, status_history, postpone_history, photos, invite_links, settings, products
