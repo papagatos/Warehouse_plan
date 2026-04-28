@@ -2,7 +2,6 @@ import 'express-async-errors'
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import { startEmailWorker } from './workers/emailWorker.js'
 import { startAutoPostponeScheduler } from './workers/autoPostpone.js'
 import authRoutes  from './routes/auth.js'
 import planRoutes  from './routes/plans.js'
@@ -64,6 +63,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`✓ Сервер запущен: http://localhost:${PORT}`)
   console.log(`  Среда: ${process.env.NODE_ENV || 'development'}`)
-  startEmailWorker()
-  startAutoPostponeScheduler()
+    startAutoPostponeScheduler()
 })
