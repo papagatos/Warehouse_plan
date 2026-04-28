@@ -96,7 +96,31 @@ router.delete('/:id', requireAuth, requireRole('SUPER', 'MANAGER'), async (req, 
   if (req.user.role === 'MANAGER' && row.createdById !== req.user.id) {
     return res.status(403).json({ error: 'Можно удалять только свои записи' })
   }
+
+  // Менеджер не может удалять записи с файлами
+  if (req.user.role === 'MANAGER') {
+    const photosCount = await prisma.photo.count({ where: { planRowId: req.params.id } })
+    const docsCount = await prisma.document.count({ where: { planRowId: req.params.id } })
+    if (photosCount > 0 || docsCount > 0) {
+      return res.status(403).json({ error: 'Нельзя удалить запись с прикреплёнными файлами' })
+    }
+  }
+  // Удаляем файлы из S3
+  const { deleteFromS3 } = await import('../services/s3.js')
+
+  const photos = await prisma.photo.findMany({ where: { planRowId: req.params.id } })
+  const docs = await prisma.document.findMany({ where: { planRowId: req.params.id } })
+
   await prisma.planRow.delete({ where: { id: req.params.id } })
+
+  // Удаляем из S3 после удаления из БД
+  for (const photo of photos) {
+    await deleteFromS3(photo.fileKey).catch(() => {})
+  }
+  for (const doc of docs) {
+    await deleteFromS3(doc.fileKey).catch(() => {})
+  }
+
   res.json({ message: 'Запись удалена' })
 })
 

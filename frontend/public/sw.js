@@ -1,4 +1,4 @@
-const CACHE = 'warehouse-v202604280635' + '2026-04-28-1'
+const CACHE = 'warehouse-v202604280703' + '2026-04-28-1'
 const OFFLINE_URL = '/'
 
 self.addEventListener('install', e => {

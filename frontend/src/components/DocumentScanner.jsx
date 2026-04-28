@@ -22,7 +22,7 @@ const compressImage = (file) => new Promise((resolve) => {
   reader.readAsDataURL(file)
 })
 
-export default function DocumentScanner({ row, onDocumentAdded }) {
+export default function DocumentScanner({ row, onDocumentAdded, canScan = true, canView = true }) {
   const [open, setOpen] = useState(false)
   const [pages, setPages] = useState([])
   const [saving, setSaving] = useState(false)
@@ -40,7 +40,7 @@ export default function DocumentScanner({ row, onDocumentAdded }) {
     finally { setLoadingDocs(false) }
   }
 
-  React.useEffect(() => { loadDocs() }, [])
+  React.useEffect(() => { if (canView) loadDocs() }, [canView])
 
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0]
@@ -90,6 +90,8 @@ export default function DocumentScanner({ row, onDocumentAdded }) {
     setError(null)
   }
 
+  if (!canView && !canScan) return null
+
   return (
     <div className="pt-2 border-t border-gray-100">
       {loadingDocs && <p className="text-xs text-gray-400 mb-2">Загрузка документов...</p>}
@@ -111,7 +113,7 @@ export default function DocumentScanner({ row, onDocumentAdded }) {
         </div>
       )}
 
-      {!open && (
+      {!open && canScan && (
         <button onClick={() => setOpen(true)}
           className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
           📎 Добавить документ

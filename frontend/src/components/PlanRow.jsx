@@ -532,9 +532,7 @@ export default function PlanRow({ row, onUpdate, onDelete }) {
 
           <PhotoUpload row={row} onUpdate={onUpdate} />
           <ArrivalLabel row={row} />
-          {(role === 'WAREHOUSE' || role === 'LOADER' || isSuper) && (
-            <DocumentScanner row={row} />
-          )}
+          <DocumentScanner row={row} canScan={role === 'WAREHOUSE' || role === 'LOADER' || isSuper} canView={role !== 'VIEWER'} />
           <HistoryButton rowId={row.id} />
 
           {/* Кнопка этикеток */}
