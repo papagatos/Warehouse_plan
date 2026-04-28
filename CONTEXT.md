@@ -12,14 +12,16 @@
 - Ручной перенос записи на любую дату (неограниченное количество раз)
 - История переносов в БД (таблица postpone_history)
 - Статус "Отменён" (красный) — для SUPER и MANAGER
-- Фото в S3
+- Фото в S3 (сжатие до 1200px на фронтенде)
 - Поддоны основные + добавка с суммой
 - Телефон контрагента
 - Этикетки отгрузки PDF → факс (fax@whmanage.ru)
-- Этикетки поступления — поиск товара по штрихкоду, печать A4 landscape
+- Этикетки поступления — поиск товара по штрихкоду, печать A4 landscape, лог печати
 - База товаров (1240 товаров) — поиск по последним цифрам штрихкода
 - Управление товарами в /settings (добавить, удалить, поиск)
-- PWA
+- Сканирование документов в PDF (многостраничное) — для WAREHOUSE, LOADER, SUPER
+- Документы хранятся в S3, привязаны к записи, доступны всем кроме VIEWER
+- PWA — только Safari (iOS) и Chrome (Android)
 - Журнал действий (/activity)
 - Фильтры по статусу и типу (localStorage)
 - Блокировка пользователей
@@ -29,6 +31,11 @@
 - Итого поддонов за день в шапке
 - Сборщик ошибок фронтенда → /errors (последние 20 + скачать лог)
 - Лог ошибок бэкенда → /errors вкладка Бэкенд
+
+## PWA установка
+- **iPhone**: открыть whmanage.ru в Safari → поделиться → На экран домой
+- **Android**: открыть whmanage.ru в Chrome → три точки → Добавить на главный экран
+- Firefox на iOS НЕ поддерживает PWA
 
 ## В процессе
 - IMAP email-worker не настроен (IMAP_HOST, IMAP_USER, IMAP_PASS не заполнены в .env)
@@ -50,4 +57,4 @@ docker exec warehouse_db pg_dump -U warehouse warehouse_db > backup-$(date +%Y%m
 ## БД
 - PostgreSQL в Docker (контейнер warehouse_db)
 - Prisma ORM
-- Таблицы: users, plans, plan_rows, status_history, postpone_history, photos, invite_links, settings, products
+- Таблицы: users, plans, plan_rows, status_history, postpone_history, photos, invite_links, settings, products, documents, print_log

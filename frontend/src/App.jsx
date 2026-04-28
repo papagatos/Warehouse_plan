@@ -12,7 +12,7 @@ import SettingsPage       from './pages/SettingsPage.jsx'
 import ErrorsPage         from './pages/ErrorsPage.jsx'
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
 
-const TODAY = format(new Date(), 'yyyy-MM-dd')
+const getToday = () => format(new Date(), 'yyyy-MM-dd')
 
 // ── Защищённый маршрут ──────────────────────────────────────
 function RequireAuth({ children }) {
@@ -40,7 +40,7 @@ function Navbar() {
       <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-1">
           <NavLink
-            to={`/plan/${TODAY}`}
+            to={`/plan/${getToday()}`}
             className={({ isActive }) =>
               `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
@@ -134,7 +134,7 @@ export default function App() {
 
           <Route path="/" element={
             <RequireAuth>
-              <Navigate to={`/plan/${TODAY}`} replace />
+              <Navigate to={`/plan/${getToday()}`} replace />
             </RequireAuth>
           } />
 

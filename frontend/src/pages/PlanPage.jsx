@@ -9,7 +9,8 @@ import PlanRow from '../components/PlanRow.jsx'
 import CreateRowForm from '../components/CreateRowForm.jsx'
 import { ROW_TYPE_CONFIG } from '../components/StatusBadge.jsx'
 
-const TODAY = format(new Date(), 'yyyy-MM-dd')
+const getToday = () => format(new Date(), 'yyyy-MM-dd')
+const TODAY = getToday()
 
 export default function PlanPage() {
   const { date = TODAY } = useParams()
