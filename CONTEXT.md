@@ -38,7 +38,7 @@
 - Firefox на iOS НЕ поддерживает PWA
 
 ## В процессе
-- IMAP email-worker не настроен (IMAP_HOST, IMAP_USER, IMAP_PASS не заполнены в .env)
+- IMAP email-worker не настроен — приём входящих писем с Excel-планами (функция не используется)
 
 ## Команды управления
 ```bash
