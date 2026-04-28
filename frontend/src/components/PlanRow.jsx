@@ -341,6 +341,11 @@ export default function PlanRow({ row, onUpdate, onDelete }) {
   const [pendingStatus, setPendingStatus] = useState(null)
   const [palletsChanged, setPalletsChanged] = useState(false)
   const { user } = useAuth()
+  const [notes, setNotes] = useState(row.notes || '')
+  const [weight, setWeight] = useState(row.weight || '')
+  const [vehicleNumber, setVehicleNumber] = useState(row.vehicleNumber || '')
+  const [editingFields, setEditingFields] = useState(false)
+  const [fieldsSaving, setFieldsSaving] = useState(false)
 
   const allowed = ALLOWED_STATUS_TRANSITIONS[role]?.[row.rowType] || []
   const canChangeStatus = canEdit && allowed.length > 0
@@ -351,6 +356,20 @@ export default function PlanRow({ row, onUpdate, onDelete }) {
       const nums = val.split('+').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0)
       return nums.length > 0 ? nums.reduce((a, b) => a + b, 0) : null
     } catch { return null }
+  }
+
+  const handleFieldsSave = async () => {
+    setFieldsSaving(true)
+    try {
+      await api.patch(`/rows/${row.id}`, {
+        notes: notes.trim() || null,
+        weight: weight ? parseFloat(weight) : null,
+        vehicleNumber: vehicleNumber.trim() || null,
+      })
+      onUpdate({ ...row, notes: notes.trim() || null, weight: weight ? parseFloat(weight) : null, vehicleNumber: vehicleNumber.trim() || null })
+      setEditingFields(false)
+    } catch (e) { setError('Ошибка сохранения') }
+    finally { setFieldsSaving(false) }
   }
 
   const handlePhoneSave = async () => {
@@ -453,8 +472,46 @@ export default function PlanRow({ row, onUpdate, onDelete }) {
               ↷ Перенесено с {new Date(row.originalDate).toLocaleDateString('ru', {day:'2-digit', month:'long'})}
             </p>
           )}
-          {row.notes && (
-            <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2">{row.notes}</p>
+          {/* Редактируемые поля */}
+          {canEdit && !editingFields && (
+            <button onClick={() => setEditingFields(true)}
+              className="text-xs text-blue-500 hover:text-blue-700">
+              ✏️ Редактировать поля
+            </button>
+          )}
+          {editingFields && canEdit ? (
+            <div className="space-y-2 bg-gray-50 rounded-xl p-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Вес (т)</p>
+                  <input className="input text-sm" type="number" step="0.1" min="0" placeholder="0.0"
+                    value={weight} onChange={e => setWeight(e.target.value)} />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">№ Машины</p>
+                  <input className="input text-sm" placeholder="А000АА 000"
+                    value={vehicleNumber} onChange={e => setVehicleNumber(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Комментарий</p>
+                <textarea className="input text-sm resize-none" rows={2}
+                  placeholder="Дополнительная информация..."
+                  value={notes} onChange={e => setNotes(e.target.value)} />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleFieldsSave} disabled={fieldsSaving}
+                  className="btn-primary text-xs px-3 py-1.5 disabled:opacity-50">
+                  {fieldsSaving ? 'Сохраняем...' : 'Сохранить'}
+                </button>
+                <button onClick={() => { setEditingFields(false); setNotes(row.notes||''); setWeight(row.weight||''); setVehicleNumber(row.vehicleNumber||'') }}
+                  className="btn-secondary text-xs px-3 py-1.5">
+                  Отмена
+                </button>
+              </div>
+            </div>
+          ) : (
+            row.notes && <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2">{row.notes}</p>
           )}
 
           {/* Телефон */}
