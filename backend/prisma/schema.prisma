@@ -73,6 +73,7 @@ model User {
   postponeHistory  PostponeHistory[]
   uploadedPhotos   Photo[]
   printLog         PrintLog[]
+  documents        Document[]
   usedInvites      InviteLink[]    @relation("UsedInvites")
   createdInvites   InviteLink[]    @relation("CreatedInvites")
 
@@ -124,6 +125,7 @@ model PlanRow {
   statusHistory   StatusHistory[]
   postponeHistory  PostponeHistory[]
   printLog         PrintLog[]
+  documents        Document[]
   photos          Photo[]
 
   @@map("plan_rows")
@@ -217,4 +219,18 @@ model PrintLog {
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("print_log")
+}
+
+model Document {
+  id           String   @id @default(uuid())
+  planRowId    String   @map("plan_row_id")
+  planRow      PlanRow  @relation(fields: [planRowId], references: [id], onDelete: Cascade)
+  fileUrl      String   @map("file_url")
+  fileKey      String   @map("file_key")
+  pages        Int      @default(1)
+  uploadedById String?  @map("uploaded_by_id")
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("documents")
 }

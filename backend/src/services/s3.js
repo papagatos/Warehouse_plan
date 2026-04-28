@@ -20,17 +20,18 @@ const BUCKET = () => process.env.S3_BUCKET
 
 // ── Загрузить файл в S3 ───────────────────────────────────────
 export async function uploadToS3(buffer, originalName, folder = 'uploads') {
-  const ext     = path.extname(originalName).toLowerCase()
-  const fileKey = `${folder}/${randomUUID()}${ext}`
+  const ext      = path.extname(originalName).toLowerCase()
+  const baseName = path.basename(originalName, ext).replace(/[^a-zA-Zа-яёА-ЯЁ0-9_\-]/g, '_').slice(0, 60)
+  const fileKey  = `${folder}/${baseName}_${randomUUID().slice(0,8)}${ext}`
 
   const client = getClient()
   await client.send(new PutObjectCommand({
-    Bucket:      BUCKET(),
-    Key:         fileKey,
-    Body:        buffer,
-    ContentType: getMimeType(ext),
-    // Фото доступны публично для отображения в браузере
-    ACL: 'public-read',
+    Bucket:             BUCKET(),
+    Key:                fileKey,
+    Body:               buffer,
+    ContentType:        getMimeType(ext),
+    ContentDisposition: `inline; filename="${encodeURIComponent(originalName)}"`,
+    ACL:                'public-read',
   }))
 
   // Публичный URL файла
